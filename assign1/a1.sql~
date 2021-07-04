@@ -1,0 +1,201 @@
+---Q1
+create or replace view Q1(pid, firstname, lastname) as
+    select pid,firstname, lastname from person
+    where pid not in (select pid from client) 
+    and   pid not in (select pid from staff)
+    order by pid;
+
+---Q2*
+create or replace view Q2(pid, firstname, lastname) as
+    select pid,firstname, lastname from person     
+    where pid not in (select pid from client)
+    order by pid;
+
+---Q3*
+--For each vehicle brand, list the vehicle insured by the most expensive policy (the premium, i.e., the sum of its approved coverages' rates). 
+--Include only the past and current enforced policies.
+--Order the result by brand, and then by vehicle id, pno if there are ties, all in ascending order.
+
+
+create or replace view Q3(brand,vid,pno,premium) as
+    select t1.brand, t1.vid, t1.pno1, t3.pr FROM (select brand, pol.id as vid , cov.pno as pno1, sum(rate) as premium
+    from insured_item
+    join policy as pol on pol.id = insured_item.id
+    join coverage as cov on cov.pno = pol.pno
+    join rating_record on rating_record.coid = cov.coid
+    group by brand,pol.id, cov.pno, pol.status, rating_record.status
+    having pol.status = 'E' and rating_record.status <> 'R') t1, 
+    
+    (select t2.brand, MAX(t2.premium) as pr FROM (select brand, pol.id as vid , cov.pno as pno1, sum(rate) as premium
+    from insured_item
+    join policy as pol on pol.id = insured_item.id
+    join coverage as cov on cov.pno = pol.pno
+    join rating_record on rating_record.coid = cov.coid
+    group by brand,pol.id, cov.pno, pol.status, rating_record.status
+    having pol.status = 'E' and rating_record.status <> 'R') t2
+    GROUP BY t2.brand) t3
+    
+    WHERE t3.pr = t1.premium
+    ORDER BY t1.brand, t1.vid, t1.pno1, t3.pr
+    
+   
+  
+
+    ;
+
+
+---Q4*
+create or replace view Q4(pid, firstname, lastname) as
+    (select pid, firstname, lastname from person
+    where pid in (select pid from staff))
+    except
+    (select pid, firstname, lastname from person
+    where pid in (select pid from staff
+    where sid in (select sid from policy)))
+    except
+    (select pid, firstname, lastname from person
+    where pid in (select pid from staff
+    where sid in (select sid from underwritten_by where underwritten_by.comments = 'rate is appropriate')))
+    except
+    (select pid, firstname, lastname from person
+    where pid in (select pid from staff
+    where sid in (select sid from rated_by where rated_by.comments = 'approved')))
+    order by pid;
+
+---Q5
+--For each suburb (by suburb name) in NSW, compute the number of enforced policies that have
+--been sold to the policy holders living in the suburb (regardless of the policy effective and expiry dates). 
+--Order the result by Number of Policies (npolicies), then by suburb, in ascending order. Exclude suburbs
+--with no sold policies. Furthermore, suburb names are output in all uppercase.
+
+/*
+create or replace view Q5(suburb, npolicies) as
+*/
+create or replace view Q5(suburb) as
+    select distinct suburb, cov.coid
+    from person
+    join client on client.pid = person.pid
+    join insured_by on insured_by.cid = client.cid
+    join policy on policy.pno = insured_by.pno
+    join coverage as cov on cov.pno = policy.pno
+    where policy.status = 'E'
+    ;
+
+ 
+
+
+/*
+select  suburb, Count(policy.pno) from person   
+join client on client.pid = person.pid 
+join insured_by on insured_by.cid = client.cid 
+join policy on policy.pno = insured_by.pno   
+Where policy.status = 'E'
+Group BY suburb;
+
+*/
+
+---Q6
+-- Find all past and current enforced policies which are rated, underwritten,
+-- and sold by the same staff member, and not involved any others at all. 
+-- Order the result by pno in ascending order
+
+/*
+create or replace view Q6(pno, ptype, pid, firstname, lastname) as
+*/
+
+create or replace view Q6(pid, firstname, lastname) as
+    select person.pid,person.firstname,person.lastname
+    from person
+    join staff on staff.pid = person.pid
+    join policy on policy.sid = staff.sid
+    join underwritten_by on underwritten_by.sid = staff.sid
+    join rated_by on rated_by.sid = staff.sid;
+
+
+/*
+
+Main Query: 
+
+select t1.* from (select rb.sid, cov.pno from rated_by rb
+JOIN rating_record on  rb.rid = rating_record.rid
+JOIN coverage cov on rating_record.coid = cov.coid) t1
+JOIN (select underwritten_by.sid,ur.pno from underwritten_by
+JOIN underwriting_record ur on underwritten_by.urid = ur.urid) t2
+ON t1.sid = t2.sid
+;
+
+
+
+
+select rb.sid, cov.pno from rated_by rb
+JOIN rating_record on  rb.rid = rating_record.rid
+JOIN coverage cov on rating_record.coid = cov.coid
+INTERSECT
+select underwritten_by.sid,ur.pno from underwritten_by
+JOIN underwriting_record ur on underwritten_by.urid = ur.urid
+INTERSECT
+select staff.sid, policy.pno from Person 
+JOIN Staff on person.pid = staff.pid
+JOIN policy on policy.sid = staff.sid 
+WHERE policy.status = 'E';
+    
+    
+*/
+
+---Q7
+--The company would like to speed up the turnaround time of approving a policy 
+--and wants to find the enforced policy with the longest time between the first
+--rater rating a coverage of the policy (regardless of the rating status), and 
+--the last underwriter approving the policy. Find such a policy (or policies 
+--if there is more than one policy with the same longest time) and output the details
+--as specified below. Order the result by pno in ascending order.
+
+--create or replace view Q7(pno, ptype, effectivedate, expirydate, agreedvalue) as
+
+create or replace view Q7(pno,ptype, effectivedate, expirydate, agreedvalue) as
+    select pno,ptype, effectivedate,expirydate,agreedvalue, (max(expirydate) - min(effectivedate)) as DateDifference
+    from policy
+    where policy.status = 'E'
+    group by pno;
+
+
+---Q8
+--List the staff members (their firstname, a space and then the lastname as one column called name) 
+--who have successfully sold policies (i.e., enforced policies) that only cover one brand of vehicle.
+-- Order the result by pid in ascending order.
+
+/*
+create or replace view Q8(pid, name, brand) as
+*/
+
+---Q9
+--List clients (their firstname, a space and then the lastname as one column called name) 
+--who hold policies that cover all brands of vehicles recorded  in the database. 
+--Ignore the policy status and include the past and current policies. 
+--Order the result by pid in ascending order.
+
+--create or replace view Q9(pid, name) as
+
+
+
+---Q10
+--Create a function that returns the total number of (distinct) staff 
+--that have worked (i.e., sells, rates, underwrites) on the given policy 
+--(ignore its status)
+
+/*
+create or replace function staffcount(pno integer) 
+    returns integer 
+as $$
+
+declare
+    result integer
+begin
+
+end;
+$$ language plpgsql;
+*/
+
+-- Q11
+
+-- Q12
