@@ -1,0 +1,52 @@
+-- COMP3311 21T1 Exam Answer Template for Written Questions
+--
+-- Modify the dummy placeholder REPLACE ME for each of
+-- the Questions below (Q8 - Q11)
+
+
+-- Q8
+-- Functional dependencies
+-- (a)
+ACB, CDB, 
+
+-- (b)
+A, 
+
+-- (c)
+ACE, DEC 
+
+
+-- Q9
+-- Normalization
+-- (a)
+
+
+-- (b)
+REPLACE ME
+
+-- (c)
+REPLACE ME
+
+
+-- Q10
+-- Serializability
+-- (a)
+REPLACE ME
+
+-- (b)
+REPLACE ME
+
+-- (c)
+No, because there is a conflict in T1: R(Y) and T2: W(Y )
+-- (d)
+No, there is a conflcit between T1: R(X) and T4: R(X)
+
+
+-- Q11
+-- Relational algebra
+E
+
+
+
+
+

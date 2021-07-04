@@ -1,0 +1,71 @@
+#!/usr/bin/python3
+
+#need to fix sorting
+
+import sqlite3
+import sys 
+from operator import itemgetter
+
+con = sqlite3.connect('a2.db')
+
+cur = con.cursor()
+
+genre_input = sys.argv[1] 
+rating = sys.argv[2] 
+
+genre_list = genre_input.split("&")
+#print(genre_list)
+
+query = """
+  select m.title, m.year, m.lang, rat.imdb_score, rat.num_voted_users
+  from Movie as m
+  join Genre as g on g.movie_id = m.id
+  join Rating as rat on rat.movie_id = m.id
+  where g.genre like "%{}%"
+  and
+  rat.imdb_score >= {}
+"""
+
+get_rating = """
+  select m.content_rating
+  from movie as m
+  where m.title like "%{}%"
+"""
+
+l = []
+for genre in genre_list:
+  cur.execute(query.format(genre,rating))
+  res = cur.fetchall()
+  genre_list = set()
+  for t in res:
+    title,year,language, score, votes = t
+    genre_list.add(t)
+  l.append(genre_list)
+
+
+result = set.intersection(*l)
+new = list(result)
+
+result_l = sorted(new,key = itemgetter(3,4),reverse = True)
+
+
+count = 1
+for i in result_l:
+  cur.execute(get_rating.format(i[0]))
+  res = cur.fetchall()
+  for ratings in res:
+    rate = ratings[0]
+  
+  if rate != None and i[1] != None:
+    print('{}. {} ({}, {}, {}) [{:.1f}, {}]'.format(count, i[0],i[1],rate,i[2],i[3],i[4]))
+  else:
+    if i[1] != None and rate is None:
+      print('{}. {} ({}, {}) [{:.1f}, {}]'.format(count, i[0],i[1],i[2],i[3],i[4]))
+    elif rate != None and i[1] is None:
+      print('{}. {} ({}, {}) [{:.1f}, {}]'.format(count, i[0],rate,i[2],i[3],i[4]))
+    else:
+      print('{}. {} ({}) [{:.1f}, {}]'.format(count, i[0],i[2],i[3],i[4]))
+
+  count = count +1
+
+con.close()

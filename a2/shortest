@@ -1,0 +1,59 @@
+#!/usr/bin/python3
+
+import sys
+import sqlite3
+
+con = sqlite3.connect('a2.db')
+
+cur = con.cursor()
+
+actor1 = sys.argv[1] 
+actor2 = sys.argv[2]
+
+query = """
+select m.title, m.year from 
+Movie as m
+join Acting as act on act.movie_id = m.id
+join Actor as a on a.id = act.actor_id
+where a.name like "%{}%"
+intersect
+select m.title, m.year from 
+Movie as m
+join Acting as act on act.movie_id = m.id
+join Actor as a on a.id = act.actor_id
+where a.name like "%{}%"
+order by m.title asc
+""".format(actor1,actor2)
+
+get_name = """
+select a.name from
+Actor as a
+where a.name like "%{}%"
+"""
+
+
+
+cur.execute(get_name.format(actor1))
+res = cur.fetchall()
+
+for t in res:
+    a1_name = t[0]
+
+cur.execute(get_name.format(actor2))
+res = cur.fetchall()
+
+for t in res:
+    a2_name = t[0]
+
+
+cur.execute(query)
+res = cur.fetchall()
+
+i = 1
+for t in res:
+    title, year = t
+    print(f'{i}. {a1_name} was in {title} ({year}) with {a2_name}')
+    i += 1
+
+
+con.close()
